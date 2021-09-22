@@ -21,6 +21,12 @@ def channel_info(workspace, channel):
     with open(path, 'r') as jsonf:
         return json.load(jsonf)['channel_info']
 
+def messages(workspace, channel):
+    """ Get messages of `channel` in `workspace` """
+    path = '{}{}/channels/{}.json'.format(ROOT, workspace, channel)
+    with open(path, 'r') as jsonf:
+        return json.load(jsonf)['messages']
+
 
 
 if '__main__' == __name__:
