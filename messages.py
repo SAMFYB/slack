@@ -34,3 +34,21 @@ class activity:
                 message['text'] for message in self.messages[channel] if message['user'] == user
             ]) for channel in channels)
 
+    def channel_timeline(self, channel):
+        """ Get timeline of activity (messages) in `channel` """
+        timeline = [float(message['ts']) for message in self.messages[channel]]
+        breaks = [(timeline[i] - timeline[i + 1], (timeline[i + 1], timeline[i])) for i in range(len(timeline) - 1)]
+        from statistics import median
+        median_break = round(median([brk for brk, _ in breaks]))
+        def Hampel(L, m):
+            """ Identify indices for Hampel outliers given data `L` and median `m` """
+            # ref https://towardsdatascience.com/practical-implementation-of-outlier-detection-in-python-90680453b3ce
+            deviations = [abs(x - m) for x in L]
+            median_deviation = median(deviations)
+            return [i for i in range(len(L)) if abs(L[i] - m) >= 4.5 * median_deviation]
+        return {
+            'timeline': timeline,
+            'median_break': median_break, # "Activity level", ref (Mezouar) `Exploring the Use of Chatrooms`
+            'outliers': [breaks[i] for i in Hampel([brk for brk, _ in breaks], median_break)],
+        }
+
