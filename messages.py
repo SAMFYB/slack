@@ -67,6 +67,16 @@ if '__main__' == __name__:
     import sys
     from pprint import pprint
 
-    if len(sys.argv) > 2 and sys.argv[1] == 'channels-breakdown':
-        pprint(activity(sys.argv[2]).channels_breakdown())
+    if len(sys.argv) >= 3 and sys.argv[1] == 'channels-breakdown': # python ~.py channels-breakdown `workspace`
+        B = activity(sys.argv[2]).channels_breakdown()
+        if len(sys.argv) >= 5 and sys.argv[3] == 'over': # python ~.py c-b `wksp` over `threshold:int`
+            threshold = int(sys.argv[4])
+            over = lambda breakdowns: any(percentage > threshold for _, _, percentage, _ in breakdowns)
+            over_threshold_channels = dict([
+                (channel, breakdowns) for channel, breakdowns in B.items() if over(breakdowns)
+            ])
+            pprint(over_threshold_channels)
+            sys.exit(0)
+        pprint(B)
+        sys.exit(0)
 
