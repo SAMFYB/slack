@@ -1,4 +1,10 @@
+import csv
 import data
+
+def _read_reference_users():
+    with open('users.csv', 'r') as f:
+        return dict([(user['id'], user) for user in csv.DictReader(f)])
+reference_users = _read_reference_users()
 
 def get_user_channels(workspace, user):
     """ Find channels in `workspace` where the `user` is a member """

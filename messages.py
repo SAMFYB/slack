@@ -8,13 +8,22 @@ class activity:
         self.channels = data.channels(workspace)
         self.messages = dict((channel, data.messages(workspace, channel)) for channel in self.channels)
 
+    def channels_breakdown(self):
+        """ Percentage of channel activity by users for all channels in this workspace """
+        return dict([(channel, self.channel_breakdown(channel)) for channel in self.channels])
+
     def channel_breakdown(self, channel):
         """ Percentage of `channel` activity by users in terms of number of messages """
         members = data.channel_info(self.workspace, channel)
         from collections import Counter
-        counter = Counter(message['user'] for message in self.messages[channel])
+        counter = Counter(message['user'] if 'user' in message else 'N/A' for message in self.messages[channel])
         s = len(self.messages[channel])
-        return [(user, round(count / s * 100)) for user, count in counter.items()]
+        return [( # user ID, role (reference), percentage, count (# messages)
+            user,
+            people.reference_users[user]['role'] if user in people.reference_users else None,
+            round(count / s * 100),
+            count
+            ) for user, count in counter.items()]
 
     def user_breakdown(self, user):
         """ Percentage of `user` activity by channels in terms of number of messages """
@@ -51,4 +60,13 @@ class activity:
             'median_break': median_break, # "Activity level", ref (Mezouar) `Exploring the Use of Chatrooms`
             'outliers': [breaks[i] for i in Hampel([brk for brk, _ in breaks], median_break)],
         }
+
+
+
+if '__main__' == __name__:
+    import sys
+    from pprint import pprint
+
+    if len(sys.argv) > 2 and sys.argv[1] == 'channels-breakdown':
+        pprint(activity(sys.argv[2]).channels_breakdown())
 
