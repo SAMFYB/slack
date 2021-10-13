@@ -8,9 +8,20 @@ class activity:
         self.channels = data.channels(workspace)
         self.messages = dict((channel, data.messages(workspace, channel)) for channel in self.channels)
 
-    def channels_breakdown(self):
-        """ Percentage of channel activity by users for all channels in this workspace """
-        return dict([(channel, self.channel_breakdown(channel)) for channel in self.channels])
+    def channels_breakdown(self, percentage_over = 0, total_messages_over = 0, include_single_member_channels = True):
+        """ Percentage of channel activity by users for channels satisfying given filters in this workspace """
+        has_percentage_over = lambda breakdown: any(percentage > percentage_over for _, _, percentage, _ in breakdown)
+        total_messages_is_over = lambda breakdown: sum(count for _, _, _, count in breakdown) > total_messages_over
+        is_single_member_channel = lambda breakdown: len(breakdown) <= 1
+        breakdowns = [(channel, self.channel_breakdown(channel)) for channel in self.channels]
+        filtered = [
+            (channel, breakdown) for channel, breakdown in breakdowns \
+            if has_percentage_over(breakdown) and \
+               total_messages_is_over(breakdown) and \
+               (include_single_member_channels or not is_single_member_channel(breakdown))
+        ]
+        print(f'{len(breakdowns) = }, {len(filtered) = }')
+        return dict(filtered)
 
     def channel_breakdown(self, channel):
         """ Percentage of `channel` activity by users in terms of number of messages """
@@ -67,16 +78,17 @@ if '__main__' == __name__:
     import sys
     from pprint import pprint
 
-    if len(sys.argv) >= 3 and sys.argv[1] == 'channels-breakdown': # python ~.py channels-breakdown `workspace`
-        B = activity(sys.argv[2]).channels_breakdown()
-        if len(sys.argv) >= 5 and sys.argv[3] == 'over': # python ~.py c-b `wksp` over `threshold:int`
-            threshold = int(sys.argv[4])
-            over = lambda breakdowns: any(percentage > threshold for _, _, percentage, _ in breakdowns)
-            over_threshold_channels = dict([
-                (channel, breakdowns) for channel, breakdowns in B.items() if over(breakdowns)
-            ])
-            pprint(over_threshold_channels)
-            sys.exit(0)
-        pprint(B)
-        sys.exit(0)
+    opts = dict([
+        (key, value) for key, value in [
+            opt.split(':') for opt in sys.argv[1:]
+        ]
+    ])
+
+    if 'channels-breakdown' in opts:
+        workspace = opts['channels-breakdown']
+        pprint(activity(workspace).channels_breakdown(
+            percentage_over = int(opts['percentage-over']) if 'percentage-over' in opts else 0,
+            total_messages_over = int(opts['total-messages-over']) if 'total-messages-over' in opts else 0,
+            include_single_member_channels = opts['include-single-member-channels'] == 'yes' if 'include-single-member-channels' in opts else True,
+        ))
 
